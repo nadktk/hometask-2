@@ -54,7 +54,7 @@ Employee.prototype.changePosition = function(newPosition) {
 // result
 const employee = new Employee('John', 'Doe', 'accountant');
 
-//console.log(employee.showName()); // `John Doe`
+console.log(employee.showName()); // `John Doe`
 console.log(employee.showNameAndPosition()); // `John Doe: accountant`
 
 // changeName
