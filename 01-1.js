@@ -6,10 +6,11 @@ function Person(name) {
 function Student(name, studentId) {
   Person.call(this, name);
   this.studentId = studentId;
-  this.show = function() {
-    return `${this.studentId}: ${this.name}`;
-  };
 }
+
+Student.prototype.show = function() {
+  return `${this.studentId}: ${this.name}`;
+};
 
 const student1 = new Student('Daniel', 1);
 const student2 = new Student('Maria', 2);
