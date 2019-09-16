@@ -6,6 +6,15 @@
  *
  * NOTE: Feel free to add any extra member variables/functions you like.
  */
+const {
+  AFTER,
+  BEFORE,
+  BOTTOM_INT,
+  OVERLAP,
+  INSIDE,
+  UPPER_INT,
+  EMPTY
+} = require('./intersection-types');
 
 class RangeList {
   constructor() {
@@ -20,20 +29,17 @@ class RangeList {
    * INSIDE - range1 is inside of range2
    * UPPER_INT- range1 is after range2 and intersects
    * OVERLAP - range1 is overlapping range2
-   * AFTER- range1 is after range2 and doesn't intersects
-   *
+   * AFTER - range1 is after range2 and doesn't intersects
+   * EMPTY - range1 doesn't contain any numbers
    */
   compareRanges([start1, end1], [start2, end2]) {
-    if (start1 > end2) return 'AFTER';
-    if (start1 <= start2) {
-      if (end1 < start2) return 'BEFORE';
-      if (end1 <= end2) return 'BOTTOM_INT';
-      if (end1 >= end2) return 'OVERLAP';
-    }
-    if (start1 < end1) {
-      if (end1 <= end2) return 'INSIDE';
-      if (end1 > end2) return 'UPPER_INT';
-    }
+    if (start1 === end1) return EMPTY;
+    if (start1 > end2) return AFTER;
+    if (end1 <= start2) return BEFORE;
+    if (start1 <= start2 && end1 >= end2) return OVERLAP;
+    if (start1 <= start2 && end1 < end2) return BOTTOM_INT;
+    if (start1 > start2 && end1 < end2) return INSIDE;
+    if (start1 > start2 && end1 >= end2) return UPPER_INT;
   }
 
   /**
@@ -43,8 +49,12 @@ class RangeList {
     return (
       range &&
       range.length === 2 &&
-      Number.isInteger(range[0]) &&
-      Number.isInteger(range[1]) &&
+      (Number.isInteger(range[0]) ||
+        range[0] === Infinity ||
+        range[0] === -Infinity) &&
+      (Number.isInteger(range[1]) ||
+        range[1] === Infinity ||
+        range[1] === -Infinity) &&
       range[0] <= range[1]
     );
   }
@@ -61,8 +71,6 @@ class RangeList {
 
     const [start, end] = range;
 
-    if (start === end) return;
-
     if (this.range.length === 0) {
       this.range.push(range);
       return;
@@ -70,15 +78,16 @@ class RangeList {
 
     for (let [i, subrange] of this.range.entries()) {
       switch (this.compareRanges(range, subrange)) {
-        case 'INSIDE':
+        case INSIDE:
+        case EMPTY:
           return;
-        case 'BEFORE':
+        case BEFORE:
           this.range.splice(i, 0, range);
           return;
-        case 'BOTTOM_INT':
+        case BOTTOM_INT:
           subrange[0] = start;
           return;
-        case 'OVERLAP':
+        case OVERLAP:
           subrange[0] = start;
           subrange[1] = end;
           // check for intersection with next subrange
@@ -87,7 +96,7 @@ class RangeList {
             this.range.splice(i, 1);
           }
           return;
-        case 'UPPER_INT':
+        case UPPER_INT:
           subrange[1] = end;
           // check for crossing with next subrange
           i++;
@@ -96,8 +105,6 @@ class RangeList {
             this.range.splice(i, 1);
           }
           return;
-        default:
-          continue;
       }
     }
     this.range.push(range);
@@ -115,17 +122,18 @@ class RangeList {
 
     const [start, end] = range;
 
-    if (this.range.length === 0 || start === end) return;
+    if (this.range.length === 0) return;
 
     for (let [i, subrange] of this.range.entries()) {
       switch (this.compareRanges(range, subrange)) {
-        case 'BEFORE':
+        case BEFORE:
+        case EMPTY:
           return;
-        case 'BOTTOM_INT':
+        case BOTTOM_INT:
           subrange[0] = end;
           if (subrange[0] === subrange[1]) this.range.splice(i, 1);
           return;
-        case 'OVERLAP':
+        case OVERLAP:
           this.range.splice(i, 1);
           // check for crossing with next subrange
           while (this.range[i] && this.range[i][1] < end) {
@@ -135,12 +143,12 @@ class RangeList {
             this.range[i][0] = end;
           }
           return;
-        case 'INSIDE':
+        case INSIDE:
           const temp = subrange[1];
           subrange[1] = start;
           this.range.splice(i + 1, 0, [end, temp]);
           return;
-        case 'UPPER_INT':
+        case UPPER_INT:
           subrange[1] = start;
           // check for crossing with next subrange
           i++;
@@ -151,8 +159,6 @@ class RangeList {
             this.range[i][0] = end;
           }
           return;
-        default:
-          continue;
       }
     }
   }

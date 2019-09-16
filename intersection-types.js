@@ -1,0 +1,9 @@
+module.exports = {
+  AFTER: 'AFTER',
+  BEFORE: 'BEFORE',
+  BOTTOM_INT: 'BOTTOM_INT',
+  OVERLAP: 'OVERLAP',
+  INSIDE: 'INSIDE',
+  UPPER_INT: 'UPPER_INT',
+  EMPTY: 'EMPTY'
+};
