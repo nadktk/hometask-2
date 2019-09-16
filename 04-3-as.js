@@ -16,58 +16,60 @@ const rolesList = [
   { username: 'Matt', role: roles.USER }
 ];
 
+// added custom error class
+class AccessError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AccessError';
+  }
+}
+
 const dataBase = {
   // check username and password
-  verifyUser: (username, password) => {
-    return new Promise((res, rej) => {
-      const user = usersList.find(u => u.username === username);
-      if (!user) rej(Error("This user doesn't exist"));
-      if (user.password !== password) rej(Error('Wrong password'));
-      res(user);
-    });
+
+  verifyUser: async (username, password) => {
+    const user = usersList.find(
+      u => u.username === username && u.password === password
+    );
+    if (!user) throw new AccessError('Wrong username and password');
+    return { username };
   },
 
   // get roles array
-  getRoles: username => {
-    return new Promise((res, rej) => {
-      const userRoles = rolesList.filter(u => u.username === username);
-      if (userRoles.length === 0) rej(Error('This user has no roles'));
-      res(userRoles.map(u => u.role));
-    });
+  getRoles: async userInfo => {
+    const userRoles = rolesList
+      .filter(u => u.username === userInfo.username)
+      .map(u => u.role);
+    if (!userRoles.length) throw new AccessError('This user has no roles');
+    return { ...userInfo, userRoles };
   },
 
   // access if admin
-  logAccess: username => {
-    return new Promise((res, rej) => {
-      const userRoles = rolesList.filter(u => u.username === username);
-      if (userRoles.length === 0) rej(Error('This user has no roles'));
-      if (!userRoles.map(u => u.role).includes(roles.ADMIN))
-        rej(Error('This user is not admin. Access denied'));
-      res();
-    });
+  logAccess: async userInfo => {
+    if (!userInfo.userRoles.includes(roles.ADMIN))
+      throw new AccessError('This user is not admin. Access denied');
+    return { ...userInfo, verified: true };
   }
 };
 
-const verifyUser = async function(username, password) {
-  let user = null;
-  let roles = [];
+const greet = userInfo =>
+  console.log(`
+  LOGIN SUCCESSFUL
+  Username: ${userInfo.username}
+  Roles: ${userInfo.userRoles.join(', ')}
+`);
 
+const verifyUserAsync = async function(username, password) {
   try {
-    user = await dataBase.verifyUser(username, password);
-    roles = await dataBase.getRoles(username);
-    await dataBase.logAccess(username);
-
-    console.log(`
-    LOGIN SUCCESSFUL
-    Username: ${user.username}
-    Roles: ${roles.join(', ')}
-    `);
+    let userInfo = await dataBase.verifyUser(username, password);
+    const userInfoWithRoles = await dataBase.getRoles(userInfo);
+    greet(await dataBase.logAccess(userInfoWithRoles));
   } catch (err) {
     console.log(err.toString());
   }
 };
 
-verifyUser('Bob', '222'); // Error: Wrong password
-verifyUser('Sarah', '222'); // Error: This user doesn't exist
-verifyUser('Sam', '222'); // Error: This user is not admin. Access denied!
-verifyUser('Bob', '111'); // LOGIN SUCCESS, User details
+verifyUserAsync('Bob', '222'); // AccessError: Wrong username and password
+verifyUserAsync('Sarah', '222'); // AccessError: Wrong username and password
+verifyUserAsync('Sam', '222'); // AccessError: This user is not admin. Access denied
+verifyUserAsync('Bob', '111'); // LOGIN SUCCESS, User details
