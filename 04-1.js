@@ -16,37 +16,38 @@ const rolesList = [
   { username: 'Matt', role: roles.USER }
 ];
 
+// added custom error class
+class AccessError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AccessError';
+  }
+}
+
 const dataBase = {
   // check username and password
   verifyUser: (username, password, callback) => {
     const user = usersList.find(u => u.username === username);
-    let error = null;
-
-    if (!user) error = Error("This user doesn't exist");
-    else if (user.password !== password) error = Error('Wrong password');
-
-    return callback(error, user);
+    return user && user.password === password
+      ? callback(null, { username })
+      : callback(new AccessError('Wrong username or password'));
   },
+
   // get roles array
-  getRoles: (username, callback) => {
-    const userRoles = rolesList.filter(u => u.username === username);
-    let error = null;
-
-    if (userRoles.length === 0) error = Error('This user has no roles');
-
-    return callback(error, userRoles.map(u => u.role));
+  getRoles: (userInfo, callback) => {
+    const userRoles = rolesList
+      .filter(u => userInfo.username === u.username)
+      .map(u => u.role);
+    return userRoles.length
+      ? callback(null, { ...userInfo, userRoles })
+      : callback(new AccessError('This user has no roles'));
   },
+
   // access if admin
-  logAccess: (username, callback) => {
-    const userRoles = rolesList.filter(u => u.username === username);
-    let error = null;
-
-    if (userRoles.length === 0) error = Error('This user has no roles');
-    if (!userRoles.map(u => u.role).includes(roles.ADMIN))
-      error = Error('This user is not admin. Access denied');
-
-    return callback(error);
-  }
+  logAccess: (userInfo, callback) =>
+    userInfo.userRoles.includes(roles.ADMIN)
+      ? callback(null, { ...userInfo, verified: true })
+      : callback(new AccessError('This user is not admin. Access denied'))
 };
 
 const verifyUser = function(username, password, callback) {
@@ -54,15 +55,15 @@ const verifyUser = function(username, password, callback) {
     if (error) {
       callback(error);
     } else {
-      dataBase.getRoles(username, (error, roles) => {
+      dataBase.getRoles(userInfo, (error, userInfo) => {
         if (error) {
           callback(error);
         } else {
-          dataBase.logAccess(username, error => {
+          dataBase.logAccess(userInfo, (error, userInfo) => {
             if (error) {
               callback(error);
             } else {
-              callback(null, userInfo, roles);
+              callback(null, userInfo);
             }
           });
         }
@@ -71,17 +72,20 @@ const verifyUser = function(username, password, callback) {
   });
 };
 
-function greet(err, userInfo, roles) {
-  if (err) console.log(err.toString());
+function greet(err, userInfo) {
+  // left toString() here for shorter output
+  if (err) console.error(err.toString());
   else
     console.log(`
     LOGIN SUCCESSFUL
     Username: ${userInfo.username}
-    Roles: ${roles.join(', ')}
+    Roles: ${userInfo.userRoles.join(', ')}
     `);
 }
 
-verifyUser('Bob', '222', greet); // Error: Wrong password
-verifyUser('Sarah', '222', greet); // Error: This user doesn't exist
-verifyUser('Sam', '222', greet); // Error: This user is not admin. Access denied
+verifyUser('Bob', '222', greet); // AccessError: Wrong username or password
+verifyUser('Sarah', '222', greet); // AccessError: Wrong username or password
+verifyUser('Sam', '222', greet); // AccessError: This user is not admin. Access denied
 verifyUser('Bob', '111', greet); // LOGIN SUCCESS, User details
+
+// Question: how can I assert console.log output?
