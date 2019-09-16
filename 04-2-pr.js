@@ -16,63 +16,62 @@ const rolesList = [
   { username: 'Matt', role: roles.USER }
 ];
 
+// added custom error class
+class AccessError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AccessError';
+  }
+}
+
 const dataBase = {
   // check username and password
-  verifyUser: (username, password) => {
-    return new Promise((res, rej) => {
-      const user = usersList.find(u => u.username === username);
-      if (!user) rej(Error("This user doesn't exist"));
-      if (user.password !== password) rej(Error('Wrong password'));
-      res(user);
-    });
-  },
+  verifyUser: (username, password) =>
+    new Promise((res, rej) => {
+      const user = usersList.find(
+        u => u.username === username && u.password === password
+      );
+      user
+        ? res({ username })
+        : rej(new AccessError('Wrong username or password'));
+    }),
 
   // get roles array
-  getRoles: username => {
-    return new Promise((res, rej) => {
-      const userRoles = rolesList.filter(u => u.username === username);
-      if (userRoles.length === 0) rej(Error('This user has no roles'));
-      res(userRoles.map(u => u.role));
-    });
-  },
+  getRoles: userInfo =>
+    new Promise((res, rej) => {
+      const userRoles = rolesList
+        .filter(u => u.username === userInfo.username)
+        .map(u => u.role);
+      userRoles.length
+        ? res({ ...userInfo, userRoles })
+        : rej(new AccessError('This user has no roles'));
+    }),
 
   // access if admin
-  logAccess: username => {
-    return new Promise((res, rej) => {
-      const userRoles = rolesList.filter(u => u.username === username);
-      if (userRoles.length === 0) rej(Error('This user has no roles'));
-      if (!userRoles.map(u => u.role).includes(roles.ADMIN))
-        rej(Error('This user is not admin. Access denied'));
-      res();
-    });
-  }
+  logAccess: userInfo =>
+    new Promise((res, rej) => {
+      userInfo.userRoles.includes(roles.ADMIN)
+        ? res({ ...userInfo, verified: true })
+        : rej(new AccessError('This user is not admin. Access denied'));
+    })
 };
 
-const verifyUser = function(username, password) {
-  let user = null;
-  let roles = [];
+const greet = userInfo =>
+  console.log(`
+  LOGIN SUCCESSFUL
+  Username: ${userInfo.username}
+  Roles: ${userInfo.userRoles.join(', ')}
+`);
 
+const errorHandler = err => console.log(err.toString());
+
+const verifyUserPromise = (username, password) =>
   dataBase
     .verifyUser(username, password)
-    .then(userData => {
-      user = userData;
-      return dataBase.getRoles(userData.username);
-    })
-    .then(rolesArray => {
-      roles = rolesArray;
-      return dataBase.logAccess(username);
-    })
-    .then(() => {
-      console.log(`
-    LOGIN SUCCESSFUL
-    Username: ${user.username}
-    Roles: ${roles.join(', ')}
-    `);
-    })
-    .catch(err => console.log(err.toString()));
-};
+    .then(dataBase.getRoles)
+    .then(dataBase.logAccess);
 
-verifyUser('Bob', '222'); // Error: Wrong password
-verifyUser('Sarah', '222'); // Error: This user doesn't exist
-verifyUser('Sam', '222'); // Error: This user is not admin. Access denied!
-verifyUser('Bob', '111'); // LOGIN SUCCESS, User details
+verifyUserPromise('Bob', '222').then(greet, errorHandler); // AccessError: Wrong username or password
+verifyUserPromise('Sarah', '222').then(greet, errorHandler); // AccessError: Wrong username or password
+verifyUserPromise('Sam', '222').then(greet, errorHandler); // AccessError: This user is not admin. Access denied
+verifyUserPromise('Bob', '111').then(greet, errorHandler); // LOGIN SUCCESS, User details
