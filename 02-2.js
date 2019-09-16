@@ -35,11 +35,25 @@ __________ The History of Changes __________
 
 class Employee extends Person {
   constructor(firstName, lastName, position) {
+    //  added id generator for employeeId
+    const idGenerator = () => {
+      return (
+        Date.now()
+          .toString(32)
+          .substr(-4) +
+        '-' +
+        Math.random()
+          .toString(32)
+          .substr(2)
+      );
+    };
+
     super(firstName, lastName);
     this.position = position;
+    this.employeeId = idGenerator();
   }
   showNameAndPosition() {
-    return `${this.showName()}: ${this.position}`;
+    return `${this.employeeId}: ${this.showName()}, ${this.position}`;
   }
   changePosition(newPosition) {
     this.addChangesRecord('Position', this.position, newPosition);

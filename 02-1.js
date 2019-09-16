@@ -36,14 +36,28 @@ __________ The History of Changes __________
 };
 
 const Employee = function(firstName, lastName, position) {
+  //  added id generator for employeeId
+  const idGenerator = () => {
+    return (
+      Date.now()
+        .toString(32)
+        .substr(-4) +
+      '-' +
+      Math.random()
+        .toString(32)
+        .substr(2)
+    );
+  };
+
   Person.call(this, firstName, lastName);
   this.position = position;
+  this.employeeId = idGenerator();
 };
 
 Object.setPrototypeOf(Employee.prototype, Person.prototype);
 
 Employee.prototype.showNameAndPosition = function() {
-  return `${this.showName()}: ${this.position}`;
+  return `${this.employeeId}: ${this.showName()}, ${this.position}`;
 };
 
 Employee.prototype.changePosition = function(newPosition) {

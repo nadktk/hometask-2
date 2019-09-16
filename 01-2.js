@@ -7,16 +7,29 @@ class Person {
 
 class Student extends Person {
   constructor(name, studentId) {
+    //  added id generator for studentId
+    const idGenerator = () => {
+      return (
+        Date.now()
+          .toString(32)
+          .substr(-4) +
+        '-' +
+        Math.random()
+          .toString(32)
+          .substr(2)
+      );
+    };
+
     super(name);
-    this.studentId = studentId;
+    this.studentId = idGenerator();
   }
   show() {
     return `${this.studentId}: ${this.name}`;
   }
 }
 
-const student1 = new Student('Daniel', 1);
-const student2 = new Student('Maria', 2);
+const student1 = new Student('Daniel');
+const student2 = new Student('Maria');
 
-console.log(student1.show()); // `1: Daniel`
-console.log(student2.show()); // `2: Maria`
+console.log(student1.show()); // `studentId: Daniel`
+console.log(student2.show()); // `studentId: Maria`
